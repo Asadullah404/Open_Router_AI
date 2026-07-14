@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>OmniChat — Multi-model client for OpenRouter</title>
+
+  <!-- Apply saved theme before first paint (no flash) -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('omnichat_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient studio light + film grain: the only two "decorations" in the design -->
+  <div class="ambient" aria-hidden="true">
+    <div class="key-light"></div>
+    <div class="fill-light"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Scrim for mobile drawer -->
+    <div id="sidebar-scrim" class="sidebar-scrim" aria-hidden="true"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <!-- If logo.png is missing, the serif O takes over automatically. -->
+          <img
+            src="logo.png"
+            alt=""
+            class="brand-logo"
+            onerror="this.remove(); this.parentElement.classList.add('no-logo');"
+          >
+          <span class="mark-glyph">O</span>
+        </div>
+        <div class="brand-text">
+          <h2>Omni<span class="highlight">Chat</span></h2>
+          <span class="sub-badge">OpenRouter client</span>
+        </div>
+      </div>
+
+      <button id="new-chat-btn" class="sidebar-btn new-chat-btn">
+        <span class="btn-icon" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M8 3.5v9M3.5 8h9"/>
+          </svg>
+        </span>
+        <span>New conversation</span>
+        <kbd class="kbd">N</kbd>
+      </button>
+
+      <div class="sidebar-section">
+        <h3>Conversations</h3>
+        <ul id="chat-list" class="chat-history-list">
+          <!-- Dynamically populated -->
+        </ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="config-panel">
+          <!-- API key -->
+          <div class="config-group">
+            <label for="api-key-input">OpenRouter API key</label>
+            <div class="api-key-wrapper">
+              <input
+                type="password"
+                id="api-key-input"
+                placeholder="sk-or-v1-…"
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <button id="toggle-key-visibility" class="visibility-btn" title="Show key" aria-label="Show key">
+                <svg class="icon-eye" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4">
+                  <path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10Z"/>
+                  <circle cx="10" cy="10" r="2.25"/>
+                </svg>
+              </button>
+            </div>
+            <span class="hint-text">Stored only in this browser.</span>
+          </div>
+
+          <!-- Model -->
+          <div class="config-group">
+            <label for="model-selector">Model</label>
+            <div class="model-select-wrapper">
+              <select id="model-selector">
+                <optgroup label="Free — no credits needed">
+                  <option value="auto-free" selected>Auto-select a free model</option>
+                  <option value="google/gemini-2.5-flash:free">Gemini 2.5 Flash</option>
+                  <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B</option>
+                  <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B</option>
+                </optgroup>
+                <optgroup label="Paid — uses your credits">
+                  <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                  <option value="deepseek/deepseek-chat">DeepSeek V3</option>
+                  <option value="openai/gpt-4o">GPT-4o</option>
+                </optgroup>
+                <optgroup id="dynamic-models-group" label="From your OpenRouter account">
+                  <!-- Dynamically fetched -->
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="custom">Custom model ID…</option>
+                </optgroup>
+              </select>
+              <button id="refresh-models-btn" class="refresh-btn" title="Sync models from OpenRouter" aria-label="Sync models">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                  <path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/>
+                  <path d="M16.5 3.5V6.5H13.5"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom model -->
+          <div class="config-group" id="custom-model-group" style="display: none;">
+            <label for="custom-model-input">Custom model ID</label>
+            <div class="custom-input-wrapper">
+              <input
+                type="text"
+                id="custom-model-input"
+                placeholder="provider/model-name"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
+
+          <!-- Temperature -->
+          <div class="config-group">
+            <div class="label-val-row">
+              <label for="temp-slider">Temperature</label>
+              <span id="temp-value">0.7</span>
+            </div>
+            <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.7">
+            <div class="scale-legend">
+              <span>Precise</span>
+              <span>Inventive</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat -->
+    <main class="chat-viewport">
+      <header class="chat-header">
+        <button id="menu-btn" class="icon-btn menu-btn" aria-label="Show conversations">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 6h14M3 10h14M3 14h14"/>
+          </svg>
+        </button>
+
+        <div class="active-session-meta">
+          <h1 id="active-chat-title">New conversation</h1>
+          <div class="model-indicator" title="Active model">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span id="active-model-name">auto-free</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- Signature element: hardware-style theme switch -->
+          <button id="theme-toggle" class="theme-switch" role="switch" aria-checked="true" aria-label="Switch to light theme">
+            <span class="switch-track">
+              <span class="switch-icon sun" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <circle cx="10" cy="10" r="3.4"/>
+                  <path d="M10 2.5v1.6M10 15.9v1.6M17.5 10h-1.6M4.1 10H2.5M15.3 4.7l-1.1 1.1M5.8 14.2l-1.1 1.1M15.3 15.3l-1.1-1.1M5.8 5.8 4.7 4.7"/>
+                </svg>
+              </span>
+              <span class="switch-icon moon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+                  <path d="M16 12.4A6.6 6.6 0 0 1 7.6 4a6.6 6.6 0 1 0 8.4 8.4Z"/>
+                </svg>
+              </span>
+              <span class="switch-knob"></span>
+            </span>
+          </button>
+
+          <button id="clear-current-chat-btn" class="clear-chat-btn" title="Delete all messages in this conversation">Clear chat</button>
+        </div>
+      </header>
+
+      <div id="messages-container" class="messages-container">
+        <div id="empty-state" class="empty-state">
+          <img src="logo.png" alt="OmniChat" class="empty-logo" onerror="this.remove()">
+          <p class="eyebrow">Every model, one window</p>
+          <h2>Ask <em>anything</em>.<br>Route it <em>anywhere</em>.</h2>
+          <p class="empty-lede">Paste your OpenRouter key, pick a model, and start. Gemini, Claude, GPT, Llama, DeepSeek and hundreds more — same thread, same shortcuts.</p>
+          <div class="quick-starts">
+            <button class="quick-start-prompt">Explain quantum computing in simple terms.</button>
+            <button class="quick-start-prompt">Write a JavaScript utility that debounces API calls.</button>
+            <button class="quick-start-prompt">Brainstorm five names for a developer-tools startup.</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="typing-indicator" class="typing-indicator-wrapper">
+        <div class="avatar-icon-mini">AI</div>
+        <div class="typing-bubble">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+
+      <footer class="chat-footer">
+        <form id="chat-form" class="chat-input-bar">
+          <textarea
+            id="chat-input"
+            placeholder="Message the model…"
+            rows="1"
+            required
+          ></textarea>
+          <button type="submit" id="send-btn" class="send-btn" title="Send message" aria-label="Send message">
+            <svg viewBox="0 0 24 24" class="send-icon" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12h15M13 6l6 6-6 6"/>
+            </svg>
+          </button>
+        </form>
+        <div class="footer-meta">
+          <span><strong>Enter</strong> sends · <strong>Shift + Enter</strong> adds a line</span>
+          <span class="meta-sep" aria-hidden="true"></span>
+          <span>Key and history stay on this device</span>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Canvas -->
+    <aside id="canvas-panel" class="canvas-panel">
+      <div class="canvas-header">
+        <div class="canvas-title-group">
+          <span class="canvas-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <h2 id="canvas-file-name">Workspace</h2>
+          <span id="canvas-lang-badge" class="lang-badge">javascript</span>
+        </div>
+        <div class="canvas-actions">
+          <button id="canvas-copy-btn" class="canvas-btn copy">Copy code</button>
+          <button id="canvas-close-btn" class="canvas-btn close" aria-label="Close canvas">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="canvas-editor">
+        <div class="editor-gutter">
+          <!-- Line numbers -->
+        </div>
+        <pre><code id="canvas-code-display"></code></pre>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

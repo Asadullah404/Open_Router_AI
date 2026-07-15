@@ -76,15 +76,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const messagesContainer = document.getElementById('messages-container');
   const emptyState = document.getElementById('empty-state');
   const typingIndicator = document.getElementById('typing-indicator');
-
+  
   const apiKeyInput = document.getElementById('api-key-input');
-  const toggleKeyVisibility = document.getElementById('toggleKeyVisibility') || document.getElementById('toggle-key-visibility');
+  const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
   const modelSelector = document.getElementById('model-selector');
   const refreshModelsBtn = document.getElementById('refresh-models-btn');
   const dynamicModelsGroup = document.getElementById('dynamic-models-group');
   const tempSlider = document.getElementById('temp-slider');
   const tempValue = document.getElementById('temp-value');
-
+  
   const newChatBtn = document.getElementById('new-chat-btn');
   const chatList = document.getElementById('chat-list');
   const activeChatTitle = document.getElementById('active-chat-title');
@@ -120,14 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('omnichat_api_key', apiKeyInput.value.trim());
   });
 
-  if (toggleKeyVisibility) {
-    toggleKeyVisibility.addEventListener('click', () => {
-      const isPassword = apiKeyInput.type === 'password';
-      apiKeyInput.type = isPassword ? 'text' : 'password';
-      toggleKeyVisibility.title = isPassword ? 'Hide key' : 'Show key';
-      toggleKeyVisibility.setAttribute('aria-label', toggleKeyVisibility.title);
-    });
-  }
+  toggleKeyVisibility.addEventListener('click', () => {
+    const isPassword = apiKeyInput.type === 'password';
+    apiKeyInput.type = isPassword ? 'text' : 'password';
+    toggleKeyVisibility.title = isPassword ? 'Hide key' : 'Show key';
+    toggleKeyVisibility.setAttribute('aria-label', toggleKeyVisibility.title);
+  });
 
   // ── Temperature Config ──────────────────────────────────────────────────────
   function loadTemperature() {
@@ -147,22 +145,21 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchModels() {
     refreshModelsBtn.classList.add('spinning');
     const apiKey = apiKeyInput.value.trim();
-
+    
     try {
       const headers = {};
       if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
 
-      // 🚨 FIX 1: Point directly to OpenRouter API, NOT your Vercel domain
-      const response = await fetch('https://openrouter.ai/api/v1/models', { headers });
+      const response = await fetch('/api/models', { headers });
       if (!response.ok) throw new Error('Failed to fetch models');
-
+      
       const resData = await response.json();
       const models = resData.data || [];
-
+      
       dynamicModelsGroup.innerHTML = '';
-
+      
       // Filter & sort models
       models
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -226,8 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  chatInput.addEventListener('input', autoGrowInput);
-
   // ── Conversation Management ─────────────────────────────────────────────────
   function saveSessions() {
     localStorage.setItem('omnichat_sessions', JSON.stringify(conversations));
@@ -254,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
       model: modelSelector.value === 'custom' ? ('custom:' + customModelInput.value.trim()) : (modelSelector.value || 'auto-free'),
       messages: []
     };
-
+    
     conversations.unshift(newSession);
     currentSessionId = newId;
     saveSessions();
@@ -271,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update active UI details
     activeChatTitle.textContent = session.title;
-
+    
     // Parse model: if it starts with 'custom:', it's a custom model ID
     const modelToLoad = session.model || 'auto-free';
     if (modelToLoad.startsWith('custom:')) {
@@ -285,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
       customModelGroup.style.display = 'none';
       activeModelName.textContent = modelToLoad.split('/').pop();
     }
-
+    
     // Highlight sidebar
     document.querySelectorAll('.chat-history-item').forEach(item => {
       item.classList.toggle('active', item.getAttribute('data-id') === id);
@@ -298,14 +293,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function deleteSession(id, event) {
     event.stopPropagation();
     conversations = conversations.filter(c => c.id !== id);
-
+    
     if (currentSessionId === id) {
       currentSessionId = conversations.length ? conversations[0].id : null;
     }
-
+    
     saveSessions();
     renderHistoryList();
-
+    
     if (currentSessionId) {
       loadSession(currentSessionId);
     } else {
@@ -315,25 +310,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHistoryList() {
     chatList.innerHTML = '';
-
+    
     conversations.forEach(session => {
       const li = document.createElement('li');
       li.className = `chat-history-item ${session.id === currentSessionId ? 'active' : ''}`;
       li.setAttribute('data-id', session.id);
       li.textContent = session.title;
-
+      
       const delBtn = document.createElement('button');
       delBtn.className = 'delete-session-btn';
       delBtn.innerHTML = '&times;';
       delBtn.title = 'Delete chat';
       delBtn.addEventListener('click', (e) => deleteSession(session.id, e));
-
+      
       li.appendChild(delBtn);
       li.addEventListener('click', () => {
         loadSession(session.id);
         document.body.classList.remove('sidebar-open');
       });
-
+      
       chatList.appendChild(li);
     });
   }
@@ -362,25 +357,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     emptyState.style.display = 'none';
-
+    
     messages.forEach(msg => {
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${msg.role}`;
-
+      
       const avatar = document.createElement('div');
       avatar.className = 'avatar-icon';
       avatar.textContent = msg.role === 'user' ? 'U' : 'AI';
-
+      
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
       bubble.innerHTML = formatMarkdown(msg.content);
-
+      
       msgDiv.appendChild(avatar);
       msgDiv.appendChild(bubble);
-
+      
       messagesContainer.appendChild(msgDiv);
     });
-
+    
     scrollToBottom();
   }
 
@@ -446,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Append User Message to local state
     session.messages.push({ role: 'user', content: prompt });
-
+    
     // Auto name conversation based on first prompt if title is default
     if (session.title === 'New Conversation' && session.messages.length === 1) {
       session.title = prompt.length > 24 ? prompt.substring(0, 24) + '...' : prompt;
@@ -457,31 +452,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const resolvedModel = modelSelector.value === 'custom' 
       ? 'custom:' + customModelInput.value.trim() 
       : modelSelector.value;
-
+      
     session.model = resolvedModel;
     activeModelName.textContent = resolvedModel.startsWith('custom:') 
       ? resolvedModel.substring(7).split('/').pop() 
       : resolvedModel.split('/').pop();
-
+      
     renderMessages(session.messages);
-
+    
     // Toggle typing indicator loading state
     typingIndicator.style.display = 'flex';
     scrollToBottom();
-
+    
     try {
       const modelToSend = resolvedModel.startsWith('custom:') 
         ? resolvedModel.substring(7) 
         : resolvedModel;
 
-      // 🚨 FIX 2: Point directly to OpenRouter API and remove `/api/chat`
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin, // Recommended by OpenRouter
-          'X-Title': 'OmniChat' // Recommended by OpenRouter
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: modelToSend,
@@ -567,4 +559,78 @@ document.addEventListener('DOMContentLoaded', () => {
     const codeContent = code ? code.textContent : pre.textContent;
     const lang = btn.getAttribute('data-lang') || 'txt';
 
-    openCanvas(codeC
+    openCanvas(codeContent, lang);
+  });
+
+  function openCanvas(code, lang) {
+    canvasCodeDisplay.textContent = code;
+    canvasLangBadge.textContent = lang;
+
+    // Map common languages to file extensions for premium editor look
+    const extMap = {
+      javascript: 'script.js',
+      js: 'script.js',
+      html: 'index.html',
+      css: 'style.css',
+      python: 'main.py',
+      py: 'main.py',
+      json: 'data.json',
+      typescript: 'types.ts',
+      ts: 'types.ts',
+      go: 'main.go',
+      rust: 'main.rs',
+      rs: 'main.rs',
+      cpp: 'main.cpp',
+      java: 'Main.java'
+    };
+
+    canvasFileName.textContent = extMap[lang.toLowerCase()] || `snippet.${lang}`;
+
+    // Populate Gutter Line Numbers
+    const lines = code.split('\n');
+    editorGutter.innerHTML = '';
+    lines.forEach((_, idx) => {
+      const span = document.createElement('span');
+      span.textContent = idx + 1;
+      editorGutter.appendChild(span);
+    });
+
+    // Expand Split Screen Layout
+    document.body.classList.add('canvas-active');
+  }
+
+  function closeCanvas() {
+    document.body.classList.remove('canvas-active');
+  }
+
+  canvasCloseBtn.addEventListener('click', closeCanvas);
+
+  // Copy code inside Canvas view
+  canvasCopyBtn.addEventListener('click', () => {
+    const codeText = canvasCodeDisplay.textContent;
+    navigator.clipboard.writeText(codeText).then(() => {
+      canvasCopyBtn.textContent = 'Copied';
+      toast('Code copied to clipboard');
+      setTimeout(() => { canvasCopyBtn.textContent = 'Copy code'; }, 1800);
+    }).catch(err => {
+      console.error('Clipboard copy failed: ', err);
+      toast('Copy failed — select the code and copy manually.');
+    });
+  });
+
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+    if (e.key === 'Escape') {
+      closeCanvas();
+      document.body.classList.remove('sidebar-open');
+    }
+
+    if (!typing && (e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      createNewSession();
+      chatInput.focus();
+    }
+  });
+});

@@ -1,0 +1,24 @@
+{
+  "name": "omnichat-client",
+  "version": "1.0.0",
+  "description": "A premium dark-themed AI Chat client integrating OpenRouter models.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "keywords": [
+    "chat",
+    "openrouter",
+    "ai",
+    "gemini",
+    "claude",
+    "gpt"
+  ],
+  "author": "",
+  "license": "ISC"
+}

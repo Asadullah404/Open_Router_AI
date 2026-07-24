@@ -33,7 +33,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=4.0">
+  <link rel="stylesheet" href="style.css?v=7.0">
 
   <!-- Reusable SVG symbol library -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -118,7 +118,7 @@
             <path d="M8 3.5v9M3.5 8h9"/>
           </svg>
         </span>
-        <span>New conversation</span>
+        <span>New</span>
         <kbd class="kbd">N</kbd>
       </button>
 
@@ -398,7 +398,7 @@
         <p class="login-sub">Sign in with Google to access free AI models and sync your keys.</p>
       </div>
       <div class="login-action-box">
-        <button id="gate-google-btn" class="primary-btn google-gate-btn" onclick="handleGoogleSignIn()">
+        <button id="gate-google-btn" class="primary-btn google-gate-btn">
           <svg viewBox="0 0 24 24" class="google-icon" aria-hidden="true">
             <path fill="currentColor" d="M12 11v3.2h5.28c-.24 1.28-1.62 3.72-5.28 3.72-3.18 0-5.76-2.62-5.76-5.86s2.58-5.86 5.76-5.86c1.8 0 3.02.76 3.72 1.42l2.54-2.46C16.42 3.48 14.42 2.5 12 2.5 6.72 2.5 2.5 6.72 2.5 12s4.22 9.5 9.5 9.5c5.48 0 9.12-3.86 9.12-9.28 0-.62-.06-1.1-.16-1.72H12z"/>
           </svg>
@@ -541,7 +541,7 @@
               <textarea id="new-rule-prompt-input" rows="3" placeholder="System Instruction Prompt (e.g. You are a Python Pandas expert. Always output clean, vectorized code with type hints…)"></textarea>
               <button id="create-rule-btn" class="primary-btn">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
-                <span>Save Custom Rule</span>
+                <span>Save Rule</span>
               </button>
             </div>
           </div>
@@ -560,7 +560,7 @@
       <footer class="modal-footer">
         <button id="save-settings-btn" class="primary-btn">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
-          <span>Save &amp; Apply Changes</span>
+          <span>Save</span>
         </button>
       </footer>
     </div>
@@ -569,6 +569,6 @@
   <!-- Toasts -->
   <div id="toast-host" class="toast-host" aria-live="polite"></div>
 
-  <script src="script.js?v=4.0"></script>
+  <script src="script.js?v=7.0"></script>
 </body>
 </html>

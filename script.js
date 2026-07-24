@@ -763,6 +763,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 10. Conversation Management ──────────────────────────────────────────
   function saveSessions() {
+    if (currentUser) {
+      const userSessionKey = `omnichat_sessions_${currentUser.uid}`;
+      const userActiveSessionKey = `omnichat_active_session_${currentUser.uid}`;
+      localStorage.setItem(userSessionKey, JSON.stringify(conversations));
+      if (currentSessionId) localStorage.setItem(userActiveSessionKey, currentSessionId);
+    }
     localStorage.setItem('omnichat_sessions', JSON.stringify(conversations));
     if (currentSessionId) {
       localStorage.setItem('omnichat_active_session_id', currentSessionId);
@@ -857,15 +863,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const li = document.createElement('li');
       li.className = `chat-history-item ${session.id === currentSessionId ? 'active' : ''}`;
       li.setAttribute('data-id', session.id);
-      li.textContent = session.title;
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'chat-item-title';
+      titleSpan.textContent = session.title || 'New Conversation';
 
       const delBtn = document.createElement('button');
       delBtn.className = 'delete-session-btn';
-      delBtn.innerHTML = '&times;';
-      delBtn.title = 'Delete chat';
+      delBtn.innerHTML = '<svg viewBox="0 0 20 20" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h13M8 5.5V4a1.5 1.5 0 0 1 1.5-1.5h1A1.5 1.5 0 0 1 12 4v1.5M5.5 5.5l.7 10a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4l.7-10"/></svg>';
+      delBtn.title = 'Delete conversation';
       delBtn.addEventListener('click', (e) => deleteSession(session.id, e));
 
+      li.appendChild(titleSpan);
       li.appendChild(delBtn);
+
       li.addEventListener('click', () => {
         loadSession(session.id);
         document.body.classList.remove('sidebar-open');
@@ -1407,10 +1418,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fbStatusIcon) fbStatusIcon.textContent = '';
             if (modalGoogleBtn) modalGoogleBtn.textContent = 'Sign Out';
 
-            // Load & sync data from cloud
+            // Clear any previous user state from memory so accounts NEVER mix
+            conversations = [];
+            currentSessionId = null;
+            apiKeys = [];
+            renderHistoryList();
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'flex';
+
+            // Load & sync data from cloud for this specific user UID
             loadUserDataFromFirebase(user.uid);
           } else {
-            // Logged Out state (Enforce Google Login gate)
+            // Logged Out state
+            conversations = [];
+            currentSessionId = null;
+            apiKeys = [];
+            renderHistoryList();
+            if (messagesContainer) messagesContainer.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'flex';
+
             if (loginModal) loginModal.setAttribute('aria-hidden', 'false');
             if (googleLoginBtn) googleLoginBtn.style.display = 'flex';
             if (userProfile) userProfile.style.display = 'none';
@@ -1446,8 +1472,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let isLoggingIn = false;
+
   async function handleGoogleSignIn() {
     console.log('Google Sign-in button clicked');
+    if (isLoggingIn) return;
+    isLoggingIn = true;
 
     if (gateGoogleBtn) gateGoogleBtn.innerHTML = '<span>Connecting to Google...</span>';
     if (googleLoginBtn) googleLoginBtn.innerHTML = '<span>Connecting to Google...</span>';
@@ -1491,39 +1521,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (firebase.auth().currentUser) {
-        await firebase.auth().signOut();
-        toast('Signed out successfully.');
-        return;
-      }
-
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // Trigger sign-in with popup (with immediate fallback to redirect)
+      // Trigger sign-in with popup
       try {
         const res = await firebase.auth().signInWithPopup(provider);
         if (res && res.user) {
           toast(`Welcome ${res.user.displayName || 'User'}!`);
+          if (loginModal) loginModal.setAttribute('aria-hidden', 'true');
         }
       } catch (popupErr) {
-        console.warn('Popup login note:', popupErr);
+        console.warn('Popup login note:', popupErr.code, popupErr.message);
         if (popupErr.code === 'auth/unauthorized-domain') {
-          alert('Firebase Domain Error!\n\nPlease open Firebase Console → Authentication → Settings → Authorized Domains and add "localhost".');
+          const currentHost = window.location.hostname;
+          alert(`Firebase Domain Error!\n\nYour deployment domain ("${currentHost}") is NOT authorized in Firebase.\n\nTo fix:\n1. Open Firebase Console → Authentication → Settings → Authorized Domains\n2. Add "${currentHost}" to the list.\n3. Save and try again.`);
         } else if (popupErr.code === 'auth/operation-not-allowed') {
           alert('Google Provider Disabled!\n\nPlease open Firebase Console → Authentication → Sign-in method → Google and click Enable!');
         } else if (popupErr.code === 'auth/invalid-api-key' || popupErr.code === 'auth/api-key-not-valid') {
           alert('Invalid Firebase API Key!\n\nPlease check your FIREBASE_API_KEY in your .env file.');
+        } else if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
+          console.log('User closed popup or cancelled sign-in.');
         } else {
-          // Fallback to redirect mode if popup blocked or fails
-          toast('Opening Google sign-in redirect...');
-          await firebase.auth().signInWithRedirect(provider);
+          console.warn('Other sign-in note:', popupErr.message || popupErr);
         }
       }
     } catch (err) {
       console.error('Google Sign in error:', err);
       alert(`Google Sign-in Error: ${err.message || err}`);
     } finally {
+      isLoggingIn = false;
       if (gateGoogleBtn) gateGoogleBtn.innerHTML = '<svg viewBox="0 0 24 24" class="google-icon"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg><span>Continue with Google</span>';
     }
   }
@@ -1536,13 +1563,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (logoutBtn) logoutBtn.addEventListener('click', () => {
     if (typeof firebase !== 'undefined' && firebase.apps.length) {
-      firebase.auth().signOut().then(() => toast('Signed out.'));
+      firebase.auth().signOut().then(() => {
+        currentUser = null;
+        conversations = [];
+        currentSessionId = null;
+        apiKeys = [];
+        renderHistoryList();
+        if (messagesContainer) messagesContainer.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'flex';
+        toast('Signed out successfully.');
+      });
     }
   });
 
   async function syncUserDataToFirebase() {
     if (!currentUser || !db) return;
     try {
+      const userSessionKey = `omnichat_sessions_${currentUser.uid}`;
+      const userKeysKey = `omnichat_api_keys_${currentUser.uid}`;
+      const userActiveSessionKey = `omnichat_active_session_${currentUser.uid}`;
+
+      localStorage.setItem(userSessionKey, JSON.stringify(conversations));
+      localStorage.setItem(userKeysKey, JSON.stringify(apiKeys));
+      if (currentSessionId) localStorage.setItem(userActiveSessionKey, currentSessionId);
+
       await db.collection('users').doc(currentUser.uid).set({
         apiKeys: apiKeys,
         connectedModels: connectedModels,
@@ -1557,30 +1601,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadUserDataFromFirebase(uid) {
     if (!db) return;
+
+    const userSessionKey = `omnichat_sessions_${uid}`;
+    const userKeysKey = `omnichat_api_keys_${uid}`;
+    const userActiveSessionKey = `omnichat_active_session_${uid}`;
+
     try {
       const doc = await db.collection('users').doc(uid).get();
       if (doc.exists) {
         const data = doc.data();
-        if (data.apiKeys && data.apiKeys.length) {
+
+        // Account-scoped API keys
+        if (data.apiKeys && Array.isArray(data.apiKeys)) {
           apiKeys = data.apiKeys;
-          localStorage.setItem('omnichat_api_keys', JSON.stringify(apiKeys));
-          updateActiveKeysBadge();
-          loadKeyInputsFromState();
+        } else {
+          apiKeys = [];
         }
-        if (data.connectedModels) {
-          connectedModels = data.connectedModels;
-          localStorage.setItem('omnichat_connected_models', JSON.stringify(connectedModels));
-        }
-        if (data.defaultModel) {
-          defaultModel = data.defaultModel;
-          localStorage.setItem('omnichat_default_model', defaultModel);
-        }
-        if (data.conversations && data.conversations.length) {
+        localStorage.setItem(userKeysKey, JSON.stringify(apiKeys));
+        localStorage.setItem('omnichat_api_keys', JSON.stringify(apiKeys));
+
+        if (data.connectedModels) connectedModels = data.connectedModels;
+        if (data.defaultModel) defaultModel = data.defaultModel;
+
+        // Account-scoped conversations
+        if (data.conversations && Array.isArray(data.conversations)) {
           conversations = data.conversations;
-          localStorage.setItem('omnichat_sessions', JSON.stringify(conversations));
-          renderHistoryList();
-          if (currentSessionId) loadSession(currentSessionId);
+        } else {
+          conversations = [];
         }
+        localStorage.setItem(userSessionKey, JSON.stringify(conversations));
+        localStorage.setItem('omnichat_sessions', JSON.stringify(conversations));
+
+      } else {
+        // New User in Firestore! Load from user-scoped localStorage if present or start clean
+        conversations = JSON.parse(localStorage.getItem(userSessionKey)) || [];
+        apiKeys = JSON.parse(localStorage.getItem(userKeysKey)) || [];
+      }
+
+      // Render updated account state
+      renderHistoryList();
+      updateActiveKeysBadge();
+      loadKeyInputsFromState();
+
+      const savedActiveId = localStorage.getItem(userActiveSessionKey) || localStorage.getItem('omnichat_active_session_id');
+      if (conversations.length) {
+        const targetId = (savedActiveId && conversations.some(s => s.id === savedActiveId)) ? savedActiveId : conversations[0].id;
+        loadSession(targetId);
+      } else {
+        // Create initial fresh conversation for new user
+        createNewSession();
       }
 
       // Check if user has 0 API keys saved after login

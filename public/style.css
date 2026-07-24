@@ -666,16 +666,17 @@ body.sidebar-collapsed .menu-btn {
 .chat-history-item.active::before { height: 62%; }
 
 .delete-session-btn {
+  margin-left: auto;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--r-xs);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
   color: var(--fg-3);
-  opacity: 0;
+  opacity: 0.22;
   transition: opacity var(--t-fast), color var(--t-fast),
               background-color var(--t-fast);
 }
@@ -685,8 +686,8 @@ body.sidebar-collapsed .menu-btn {
 .delete-session-btn:focus-visible { opacity: 1; }
 
 .delete-session-btn:hover {
-  color: var(--fg);
-  background: color-mix(in srgb, var(--fg) 14%, transparent);
+  color: #ef4444;
+  background: color-mix(in srgb, #ef4444 14%, transparent);
 }
 
 /* Sidebar footer: model / persona / temperature */
@@ -1251,16 +1252,21 @@ input[type="range"]:focus-visible {
 
 .clear-chat-btn {
   min-height: var(--ctl-h-sm);
-  padding: 0 13px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
   background: transparent;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 0;
   color: var(--fg-3);
+  display: grid;
+  place-items: center;
   transition: color var(--t-fast), border-color var(--t-fast),
               background-color var(--t-fast), transform var(--t-fast);
 }
+
+.clear-chat-btn .clear-label { display: none; }
 
 .clear-chat-btn:hover {
   color: var(--fg);
@@ -2691,11 +2697,26 @@ body.is-resizing-canvas .canvas-resizer::before {
 
 .modal-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding: 14px 22px;
+  padding: 12px 20px;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
+}
+
+#save-settings-btn,
+#create-rule-btn,
+#connect-model-btn,
+.rule-input-group .primary-btn,
+.connect-input-row .primary-btn {
+  width: auto !important;
+  min-height: 36px !important;
+  padding: 0 16px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-sm) !important;
+  align-self: flex-end;
 }
 
 /* Login gate flavor */

@@ -2,9 +2,9 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
-  <title>OmniChat — Multi-model client for OpenRouter</title>
+  <title>OmniChat Ultra — Multi-Model AI Client & Workspace</title>
 
   <!-- Apply saved theme before first paint (no flash) -->
   <script>
@@ -22,43 +22,99 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- File Parsers: PDF.js & Mammoth.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+  <!-- Firebase Web SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=4.0">
+
+  <!-- Reusable SVG symbol library -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-bolt" viewBox="0 0 20 20">
+        <path d="M11.5 2 4 12h5l-1 6 7.5-10H10l1.5-6z" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-key" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="7" cy="10" r="3.5"/>
+        <path d="M10 10h7M15 10v3M17 10v2"/>
+      </symbol>
+      <symbol id="i-cpu" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="5" width="10" height="10" rx="1.5"/>
+        <rect x="8" y="8" width="4" height="4"/>
+        <path d="M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"/>
+      </symbol>
+      <symbol id="i-target" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="10" cy="10" r="7.5"/>
+        <circle cx="10" cy="10" r="4"/>
+        <circle cx="10" cy="10" r="1.2" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-eye" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/>
+        <circle cx="10" cy="10" r="2.5"/>
+      </symbol>
+      <symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 5.5h13M8 5.5V4a1.5 1.5 0 0 1 1.5-1.5h1A1.5 1.5 0 0 1 12 4v1.5M5.5 5.5l.7 10a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4l.7-10M8.5 9v5M11.5 9v5"/>
+      </symbol>
+    </defs>
+  </svg>
 </head>
 <body>
-  <!-- Ambient studio light + film grain: the only two "decorations" in the design -->
+  <!-- Ambient light + film grain decor (both now monochrome) -->
   <div class="ambient" aria-hidden="true">
     <div class="key-light"></div>
     <div class="fill-light"></div>
     <div class="grain"></div>
   </div>
 
-  <div class="app-container">
-    <!-- Scrim for mobile drawer -->
-    <div id="sidebar-scrim" class="sidebar-scrim" aria-hidden="true"></div>
+  <!-- Scrim for mobile drawer -->
+  <div id="sidebar-scrim" class="sidebar-scrim" aria-hidden="true"></div>
 
+  <!-- Floating tab to reopen sidebar on desktop when collapsed -->
+  <button id="sidebar-reopen-tab" class="sidebar-reopen-tab" aria-label="Reopen sidebar" title="Reopen sidebar (N)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+      <path d="M7 4l6 6-6 6"/>
+    </svg>
+  </button>
+
+  <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <!-- If logo.png is missing, the serif O takes over automatically. -->
-          <img
-            src="logo.png"
-            alt=""
-            class="brand-logo"
-            onerror="this.remove(); this.parentElement.classList.add('no-logo');"
-          >
-          <span class="mark-glyph">O</span>
+        <div class="brand-info">
+          <div class="brand-mark" aria-hidden="true">
+            <img
+              src="logo.png"
+              alt=""
+              class="brand-logo"
+              onerror="this.remove(); this.parentElement.classList.add('no-logo');"
+            >
+            <span class="mark-glyph">O</span>
+          </div>
+          <div class="brand-text">
+            <h2>Omni<span class="highlight">Chat</span> <span class="ultra-badge">ULTRA</span></h2>
+            <span class="sub-badge">Multi-Key AI Gateway</span>
+          </div>
         </div>
-        <div class="brand-text">
-          <h2>Omni<span class="highlight">Chat</span></h2>
-          <span class="sub-badge">OpenRouter client</span>
-        </div>
+        <button id="sidebar-close-btn" class="icon-btn sidebar-close-btn" title="Collapse sidebar" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M13 4l-6 6 6 6"/>
+          </svg>
+        </button>
       </div>
 
       <button id="new-chat-btn" class="sidebar-btn new-chat-btn">
         <span class="btn-icon" aria-hidden="true">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
             <path d="M8 3.5v9M3.5 8h9"/>
           </svg>
         </span>
@@ -75,53 +131,29 @@
 
       <div class="sidebar-footer">
         <div class="config-panel">
-          <!-- API key -->
+          <!-- Model Selector -->
           <div class="config-group">
-            <label for="api-key-input">OpenRouter API key</label>
-            <div class="api-key-wrapper">
-              <input
-                type="password"
-                id="api-key-input"
-                placeholder="sk-or-v1-…"
-                autocomplete="off"
-                spellcheck="false"
-              >
-              <button id="toggle-key-visibility" class="visibility-btn" title="Show key" aria-label="Show key">
-                <svg class="icon-eye" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4">
-                  <path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10Z"/>
-                  <circle cx="10" cy="10" r="2.25"/>
-                </svg>
-              </button>
-            </div>
-            <span class="hint-text">Stored only in this browser.</span>
-          </div>
-
-          <!-- Model -->
-          <div class="config-group">
-            <label for="model-selector">Model</label>
+            <label for="model-selector">Active Model</label>
             <div class="model-select-wrapper">
               <select id="model-selector">
-                <optgroup label="Free — no credits needed">
-                  <option value="auto-free" selected>Auto-select a free model</option>
-                  <option value="google/gemini-2.5-flash:free">Gemini 2.5 Flash</option>
-                  <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B</option>
-                  <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B</option>
+                <optgroup id="free-models-group" label="Free Models (A to Z — Zero Credits)">
+                  <option value="auto-free" selected>Auto-select Best Free Model</option>
+                  <option value="google/gemini-2.5-flash:free">Google Gemini 2.5 Flash (Free)</option>
+                  <option value="google/gemini-2.0-flash-exp:free">Google Gemini 2.0 Flash Exp (Free)</option>
+                  <option value="google/gemini-flash-1.5:free">Google Gemini 1.5 Flash (Free)</option>
                 </optgroup>
-                <optgroup label="Paid — uses your credits">
-                  <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
-                  <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                  <option value="deepseek/deepseek-chat">DeepSeek V3</option>
-                  <option value="openai/gpt-4o">GPT-4o</option>
+                <optgroup id="connected-custom-models-group" label="Connected Custom Models">
+                  <!-- Dynamically populated custom connected models -->
                 </optgroup>
-                <optgroup id="dynamic-models-group" label="From your OpenRouter account">
+                <optgroup id="dynamic-models-group" label="All OpenRouter Models (A to Z)">
                   <!-- Dynamically fetched -->
                 </optgroup>
                 <optgroup label="Other">
-                  <option value="custom">Custom model ID…</option>
+                  <option value="custom">Paste Custom Model ID…</option>
                 </optgroup>
               </select>
               <button id="refresh-models-btn" class="refresh-btn" title="Sync models from OpenRouter" aria-label="Sync models">
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"/>
                   <path d="M16.5 3.5V6.5H13.5"/>
                 </svg>
@@ -129,37 +161,52 @@
             </div>
           </div>
 
-          <!-- Custom model -->
+          <!-- Custom model inline input -->
           <div class="config-group" id="custom-model-group" style="display: none;">
-            <label for="custom-model-input">Custom model ID</label>
+            <label for="custom-model-input">Custom Model String</label>
             <div class="custom-input-wrapper">
               <input
                 type="text"
                 id="custom-model-input"
-                placeholder="provider/model-name"
+                placeholder="e.g. provider/model-name"
                 autocomplete="off"
                 spellcheck="false"
               >
             </div>
           </div>
 
+          <!-- System Rule / Persona Selector -->
+          <div class="config-group">
+            <label for="system-rule-selector">System Persona / Rule</label>
+            <select id="system-rule-selector" class="form-select">
+              <option value="none" selected>Standard AI Assistant (No Rule)</option>
+              <option value="architect">Senior Software Architect</option>
+              <option value="concise">Concise & Direct (No Fluff)</option>
+              <option value="debugger">Expert Bug Hunter</option>
+              <option value="teacher">Patient Code Instructor</option>
+              <optgroup id="custom-rules-optgroup" label="Custom User Rules">
+                <!-- Dynamically populated custom user rules -->
+              </optgroup>
+            </select>
+          </div>
+
           <!-- Temperature -->
           <div class="config-group">
             <div class="label-val-row">
-              <label for="temp-slider">Temperature</label>
+              <label for="temp-slider">Creativity (Temp)</label>
               <span id="temp-value">0.7</span>
             </div>
             <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.7">
             <div class="scale-legend">
               <span>Precise</span>
-              <span>Inventive</span>
+              <span>Creative</span>
             </div>
           </div>
         </div>
       </div>
     </aside>
 
-    <!-- Chat -->
+    <!-- Main Viewport -->
     <main class="chat-viewport">
       <header class="chat-header">
         <button id="menu-btn" class="icon-btn menu-btn" aria-label="Show conversations">
@@ -173,21 +220,59 @@
           <div class="model-indicator" title="Active model">
             <span class="pulse-dot" aria-hidden="true"></span>
             <span id="active-model-name">auto-free</span>
+            <span id="connection-status-pill" class="badge-pill mini-pill">
+              <span class="status-dot" aria-hidden="true"></span>Active
+            </span>
           </div>
         </div>
 
         <div class="header-actions">
-          <!-- Signature element: hardware-style theme switch -->
-          <button id="theme-toggle" class="theme-switch" role="switch" aria-checked="true" aria-label="Switch to light theme">
+          <!-- Toggle Canvas Sidebar Button -->
+          <button id="toggle-canvas-btn" class="icon-btn canvas-toggle-btn" title="Toggle Code Canvas Sidebar" aria-label="Toggle canvas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="18" rx="2" ry="2"/>
+              <line x1="15" y1="3" x2="15" y2="21"/>
+            </svg>
+          </button>
+
+          <!-- Settings Trigger Button -->
+          <button id="open-settings-btn" class="icon-btn header-settings-btn" title="Open Settings & Manage API Keys" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+          <!-- Google Sign-in Header Widget -->
+          <div id="auth-widget" class="auth-widget">
+            <button id="google-login-btn" class="auth-btn google-btn">
+              <svg viewBox="0 0 24 24" class="google-icon" aria-hidden="true">
+                <path fill="currentColor" d="M12 11v3.2h5.28c-.24 1.28-1.62 3.72-5.28 3.72-3.18 0-5.76-2.62-5.76-5.86s2.58-5.86 5.76-5.86c1.8 0 3.02.76 3.72 1.42l2.54-2.46C16.42 3.48 14.42 2.5 12 2.5 6.72 2.5 2.5 6.72 2.5 12s4.22 9.5 9.5 9.5c5.48 0 9.12-3.86 9.12-9.28 0-.62-.06-1.1-.16-1.72H12z"/>
+              </svg>
+              <span>Sign in</span>
+            </button>
+            <div id="user-profile" class="user-profile" style="display: none;">
+              <img id="user-avatar" class="user-avatar" src="" alt="User avatar">
+              <span id="user-name" class="user-name">User</span>
+              <button id="logout-btn" class="logout-btn" title="Sign out" aria-label="Sign out">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M13 15l4-4-4-4M17 11H7M13 15v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Theme switch -->
+          <button id="theme-toggle" class="theme-switch" role="switch" aria-checked="true" aria-label="Switch theme">
             <span class="switch-track">
               <span class="switch-icon sun" aria-hidden="true">
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                   <circle cx="10" cy="10" r="3.4"/>
                   <path d="M10 2.5v1.6M10 15.9v1.6M17.5 10h-1.6M4.1 10H2.5M15.3 4.7l-1.1 1.1M5.8 14.2l-1.1 1.1M15.3 15.3l-1.1-1.1M5.8 5.8 4.7 4.7"/>
                 </svg>
               </span>
               <span class="switch-icon moon" aria-hidden="true">
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
                   <path d="M16 12.4A6.6 6.6 0 0 1 7.6 4a6.6 6.6 0 1 0 8.4 8.4Z"/>
                 </svg>
               </span>
@@ -195,57 +280,85 @@
             </span>
           </button>
 
-          <button id="clear-current-chat-btn" class="clear-chat-btn" title="Delete all messages in this conversation">Clear chat</button>
+          <button id="clear-current-chat-btn" class="clear-chat-btn" title="Delete all messages in this conversation" aria-label="Clear chat">
+            <svg class="clear-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 5.5h13M8 5.5V4a1.5 1.5 0 0 1 1.5-1.5h1A1.5 1.5 0 0 1 12 4v1.5M5.5 5.5l.7 10a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4l.7-10M8.5 9v5M11.5 9v5"/>
+            </svg>
+            <span class="clear-label">Clear chat</span>
+          </button>
         </div>
       </header>
 
       <div id="messages-container" class="messages-container">
         <div id="empty-state" class="empty-state">
-          <img src="logo.png" alt="OmniChat" class="empty-logo" onerror="this.remove()">
-          <p class="eyebrow">Every model, one window</p>
-          <h2>Ask <em>anything</em>.<br>Route it <em>anywhere</em>.</h2>
-          <p class="empty-lede">Paste your OpenRouter key, pick a model, and start. Gemini, Claude, GPT, Llama, DeepSeek and hundreds more — same thread, same shortcuts.</p>
+          <img src="logo.png" alt="OmniChat Ultra" class="empty-logo" onerror="this.remove()">
+          <p class="eyebrow">A to Z Free & Premier Models · Auto Failover</p>
+          <h2>Ask <em>anything</em>.<br>Attach <em>any code/doc</em>.</h2>
+          <p class="empty-lede">Upload code scripts (<code>.js</code>, <code>.html</code>, <code>.py</code>), documents (<code>.pdf</code>, <code>.docx</code>, <code>.txt</code>), select from A-Z free models with zero credit cost, or connect any OpenRouter model string instantly.</p>
           <div class="quick-starts">
             <button class="quick-start-prompt">Explain quantum computing in simple terms.</button>
-            <button class="quick-start-prompt">Write a JavaScript utility that debounces API calls.</button>
-            <button class="quick-start-prompt">Brainstorm five names for a developer-tools startup.</button>
+            <button class="quick-start-prompt">Write a Python script that analyzes CSV data.</button>
+            <button class="quick-start-prompt">Review my code for security vulnerabilities.</button>
           </div>
         </div>
       </div>
 
-      <div id="typing-indicator" class="typing-indicator-wrapper">
-        <div class="avatar-icon-mini">AI</div>
-        <div class="typing-bubble">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
+      <!-- Monochrome "AI thinking" state — shown/hidden by script.js via style.display -->
+      <div id="typing-indicator" class="typing-indicator-wrapper" aria-live="polite" aria-label="AI is generating a response">
+        <div class="thinking-shell">
+          <span class="thinking-border" aria-hidden="true"></span>
+          <div class="thinking-core" aria-hidden="true">
+            <span class="core-ring"></span>
+            <span class="core-orb"></span>
+            <span class="orbit-dot orbit-a"></span>
+            <span class="orbit-dot orbit-b"></span>
+            <span class="orbit-dot orbit-c"></span>
+          </div>
+          <div class="thinking-meta" aria-hidden="true">
+            <span class="thinking-label">Thinking</span>
+            <span class="thinking-wave"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+          <span class="thinking-sheen" aria-hidden="true"></span>
         </div>
       </div>
 
       <footer class="chat-footer">
+        <!-- Attached file chips wrapper -->
+        <div id="file-chips-container" class="file-chips-container"></div>
+
         <form id="chat-form" class="chat-input-bar">
+          <!-- File upload button & hidden input -->
+          <input type="file" id="file-upload-input" multiple accept=".js,.html,.css,.py,.json,.md,.cpp,.c,.java,.ts,.go,.rs,.php,.rb,.txt,.pdf,.doc,.docx" style="display: none;">
+          <button type="button" id="attach-file-btn" class="attach-btn" title="Attach code or document files" aria-label="Attach files">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+
           <textarea
             id="chat-input"
-            placeholder="Message the model…"
+            placeholder="Message model or ask about attached code/files…"
             rows="1"
             required
           ></textarea>
+
           <button type="submit" id="send-btn" class="send-btn" title="Send message" aria-label="Send message">
-            <svg viewBox="0 0 24 24" class="send-icon" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" class="send-icon" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 12h15M13 6l6 6-6 6"/>
             </svg>
           </button>
         </form>
         <div class="footer-meta">
-          <span><strong>Enter</strong> sends · <strong>Shift + Enter</strong> adds a line</span>
+          <span><strong>Enter</strong> sends · <strong>Shift + Enter</strong> adds a line · Attach code &amp; docs</span>
           <span class="meta-sep" aria-hidden="true"></span>
-          <span>Key and history stay on this device</span>
+          <span>A-Z Free Models Active</span>
         </div>
       </footer>
     </main>
 
     <!-- Canvas -->
     <aside id="canvas-panel" class="canvas-panel">
+      <div id="canvas-resizer" class="canvas-resizer" title="Drag left/right to resize canvas panel"></div>
       <div class="canvas-header">
         <div class="canvas-title-group">
           <span class="canvas-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -253,9 +366,15 @@
           <span id="canvas-lang-badge" class="lang-badge">javascript</span>
         </div>
         <div class="canvas-actions">
-          <button id="canvas-copy-btn" class="canvas-btn copy">Copy code</button>
+          <button id="canvas-copy-btn" class="canvas-btn copy">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="6" y="6" width="10" height="11" rx="1.5"/>
+              <path d="M4 12V4.5A1.5 1.5 0 0 1 5.5 3H13"/>
+            </svg>
+            <span>Copy code</span>
+          </button>
           <button id="canvas-close-btn" class="canvas-btn close" aria-label="Close canvas">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
               <path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>
             </svg>
           </button>
@@ -270,9 +389,186 @@
     </aside>
   </div>
 
+  <!-- Mandatory Google Login Modal Overlay -->
+  <div id="login-modal" class="modal-overlay login-gate-modal" aria-hidden="false">
+    <div class="modal-card login-card">
+      <div class="login-brand-header">
+        <img src="logo.png" alt="OmniChat Ultra" class="login-logo" onerror="this.remove()">
+        <h2>Welcome to <span class="highlight">OmniChat Ultra</span></h2>
+        <p class="login-sub">Sign in with Google to access free AI models and sync your keys.</p>
+      </div>
+      <div class="login-action-box">
+        <button id="gate-google-btn" class="primary-btn google-gate-btn" onclick="handleGoogleSignIn()">
+          <svg viewBox="0 0 24 24" class="google-icon" aria-hidden="true">
+            <path fill="currentColor" d="M12 11v3.2h5.28c-.24 1.28-1.62 3.72-5.28 3.72-3.18 0-5.76-2.62-5.76-5.86s2.58-5.86 5.76-5.86c1.8 0 3.02.76 3.72 1.42l2.54-2.46C16.42 3.48 14.42 2.5 12 2.5 6.72 2.5 2.5 6.72 2.5 12s4.22 9.5 9.5 9.5c5.48 0 9.12-3.86 9.12-9.28 0-.62-.06-1.1-.16-1.72H12z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Control Center Modal -->
+  <div id="settings-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card">
+      <header class="modal-header">
+        <div class="modal-title-group">
+          <h2>OmniChat Control Center</h2>
+          <p class="modal-sub">Manage API keys and connect new models</p>
+        </div>
+        <button id="close-settings-btn" class="modal-close-btn" aria-label="Close settings">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>
+          </svg>
+        </button>
+      </header>
+
+      <nav class="modal-tabs">
+        <button class="tab-btn active" data-tab="tab-keys">
+          <svg class="tab-icon" aria-hidden="true"><use href="#i-key"/></svg>
+          <span>Multi API Keys</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-models">
+          <svg class="tab-icon" aria-hidden="true"><use href="#i-cpu"/></svg>
+          <span>Models &amp; Connect</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-rules">
+          <svg class="tab-icon" aria-hidden="true"><use href="#i-target"/></svg>
+          <span>Custom System Rules</span>
+        </button>
+      </nav>
+
+      <div class="modal-body">
+        <!-- Tab 1: Multi API Keys -->
+        <div id="tab-keys" class="tab-content active">
+          <div class="alert-box info-alert" id="api-key-banner">
+            <strong>OpenRouter API Key Required:</strong> Add at least 1 OpenRouter API key. OmniChat automatically rotates across up to 5 keys and syncs them securely to your Firebase account.
+          </div>
+          <div class="key-inputs-list">
+            <div class="key-field-group">
+              <label>API Key #1 (Primary — Required)</label>
+              <div class="input-with-action">
+                <input type="password" id="key-input-1" placeholder="sk-or-v1-..." autocomplete="off">
+                <button class="toggle-pass-btn" data-target="key-input-1" aria-label="Show or hide key">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="key-field-group">
+              <label>API Key #2 (Backup 1)</label>
+              <div class="input-with-action">
+                <input type="password" id="key-input-2" placeholder="sk-or-v1-..." autocomplete="off">
+                <button class="toggle-pass-btn" data-target="key-input-2" aria-label="Show or hide key">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="key-field-group">
+              <label>API Key #3 (Backup 2)</label>
+              <div class="input-with-action">
+                <input type="password" id="key-input-3" placeholder="sk-or-v1-..." autocomplete="off">
+                <button class="toggle-pass-btn" data-target="key-input-3" aria-label="Show or hide key">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="key-field-group">
+              <label>API Key #4 (Backup 3)</label>
+              <div class="input-with-action">
+                <input type="password" id="key-input-4" placeholder="sk-or-v1-..." autocomplete="off">
+                <button class="toggle-pass-btn" data-target="key-input-4" aria-label="Show or hide key">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="key-field-group">
+              <label>API Key #5 (Backup 4)</label>
+              <div class="input-with-action">
+                <input type="password" id="key-input-5" placeholder="sk-or-v1-..." autocomplete="off">
+                <button class="toggle-pass-btn" data-target="key-input-5" aria-label="Show or hide key">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 10s3-6 8.5-6 8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Custom Models & Default Model -->
+        <div id="tab-models" class="tab-content">
+          <div class="config-group">
+            <label for="default-model-select">Default Model for New Chats</label>
+            <select id="default-model-select" class="form-select">
+              <optgroup id="default-free-models-group" label="Free Models (A to Z)">
+                <option value="auto-free" selected>Auto-select Best Free Model</option>
+              </optgroup>
+              <optgroup id="default-all-models-group" label="All OpenRouter Models (A to Z)">
+                <!-- Dynamically populated A to Z -->
+              </optgroup>
+            </select>
+          </div>
+
+          <hr class="modal-divider">
+
+          <div class="connect-model-section">
+            <h3>Connect Any OpenRouter Model</h3>
+            <p class="help-text">Simply type or paste any model ID string (e.g., <code>google/gemini-2.5-pro</code> or <code>deepseek/deepseek-r1</code>) to add it directly to your model list.</p>
+
+            <div class="connect-input-row">
+              <input type="text" id="new-model-id-input" placeholder="e.g. provider/model-name" autocomplete="off">
+              <button id="connect-model-btn" class="primary-btn">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
+                <span>Connect Model</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="custom-models-list-section">
+            <h4>Your Connected Models</h4>
+            <ul id="custom-connected-list" class="custom-models-chips-list">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 3: Custom System Rules -->
+        <div id="tab-rules" class="tab-content">
+          <div class="connect-model-section">
+            <h3>Create Custom System Rule / Persona</h3>
+            <p class="help-text">Define custom instruction rules that automatically guide the AI model's behavior on every prompt.</p>
+
+            <div class="rule-input-group">
+              <input type="text" id="new-rule-title-input" placeholder="Rule Title (e.g. Python Pandas Expert)" autocomplete="off">
+              <textarea id="new-rule-prompt-input" rows="3" placeholder="System Instruction Prompt (e.g. You are a Python Pandas expert. Always output clean, vectorized code with type hints…)"></textarea>
+              <button id="create-rule-btn" class="primary-btn">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
+                <span>Save Custom Rule</span>
+              </button>
+            </div>
+          </div>
+
+          <hr class="modal-divider">
+
+          <div class="custom-models-list-section">
+            <h4>Your Saved Custom System Rules</h4>
+            <ul id="custom-rules-list" class="custom-models-chips-list rules-stack">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button id="save-settings-btn" class="primary-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+          <span>Save &amp; Apply Changes</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
   <!-- Toasts -->
   <div id="toast-host" class="toast-host" aria-live="polite"></div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=4.0"></script>
 </body>
 </html>

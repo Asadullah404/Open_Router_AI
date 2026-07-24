@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const codeBlocks = [];
     let placeholderText = text;
 
-    // 1. Extract Fenced Code Blocks: ```lang ... ``` BEFORE converting \n to <br>
+    // 1. Extract Fenced Code Blocks: ```lang ... ``` BEFORE parsing Markdown
     placeholderText = placeholderText.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
       const language = lang ? lang.trim().toLowerCase() : 'code';
       const cleanCode = code.trim();
@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return placeholder;
     });
 
-    // 2. Extract Fallback Code Blocks: ```...```
+    // Extract Fallback Code Blocks: ```...```
     placeholderText = placeholderText.replace(/```([\s\S]*?)```/g, (match, code) => {
       const cleanCode = code.trim();
       const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
@@ -1015,23 +1015,90 @@ document.addEventListener('DOMContentLoaded', () => {
       return placeholder;
     });
 
-    let escaped = escapeHtml(placeholderText);
+    let rendered = '';
 
-    // Inline Code
-    escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Bold text
-    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-    // Line breaks for regular chat text
-    escaped = escaped.replace(/\n/g, '<br>');
+    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+      try {
+        rendered = marked.parse(placeholderText, { gfm: true, breaks: true });
+      } catch (e) {
+        console.warn('Marked.js error, falling back:', e);
+        rendered = customMarkdownParse(placeholderText);
+      }
+    } else {
+      rendered = customMarkdownParse(placeholderText);
+    }
 
     // Restore Code Blocks
     codeBlocks.forEach((cb, idx) => {
-      escaped = escaped.replace(`___CODE_BLOCK_${idx}___`, cb.html);
+      const placeholder = `___CODE_BLOCK_${idx}___`;
+      rendered = rendered.replace(new RegExp(`<p>\\s*${placeholder}\\s*</p>`, 'g'), cb.html);
+      rendered = rendered.replace(new RegExp(placeholder, 'g'), cb.html);
     });
 
-    return escaped;
+    return rendered;
+  }
+
+  function customMarkdownParse(str) {
+    if (!str) return '';
+
+    let text = escapeHtml(str);
+
+    // 1. Markdown Tables (| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |)
+    text = text.replace(/(?:^|\n)((?:\|[^\n]+\|\r?\n){2,}(?:\|[^\n]+\|(?:$|\n))*)/g, (match, tableBlock) => {
+      const lines = tableBlock.trim().split(/\r?\n/).map(l => l.trim());
+      if (lines.length < 2) return match;
+      if (!/^\|(?:\s*:?-+:?\s*\|)+$/.test(lines[1])) return match;
+
+      const parseRow = (rowStr) => rowStr.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+
+      const headers = parseRow(lines[0]);
+      let html = '<div class="table-wrapper"><table><thead><tr>';
+      headers.forEach(h => { html += `<th>${h}</th>`; });
+      html += '</tr></thead><tbody>';
+
+      for (let i = 2; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const cells = parseRow(lines[i]);
+        html += '<tr>';
+        cells.forEach(c => { html += `<td>${c}</td>`; });
+        html += '</tr>';
+      }
+      html += '</tbody></table></div>';
+      return '\n' + html + '\n';
+    });
+
+    // 2. Headings (# Title, ## Subtitle, ### H3, #### H4)
+    text = text.replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
+      const level = hashes.length;
+      return `<h${level}>${content.trim()}</h${level}>`;
+    });
+
+    // 3. Horizontal Rule
+    text = text.replace(/^(?:---|\*\*\*|___)\s*$/gm, '<hr>');
+
+    // 4. Blockquotes
+    text = text.replace(/^(?:&gt;|>)\s?(.*)$/gm, '<blockquote><p>$1</p></blockquote>');
+    text = text.replace(/<\/blockquote>\s*blockquote>/g, '<br>');
+
+    // 5. Lists
+    text = text.replace(/^(?:[\*\-\+])\s+(.+)$/gm, '<ul><li>$1</li></ul>');
+    text = text.replace(/^(\d+)\.\s+(.+)$/gm, '<ol><li>$2</li></ol>');
+    text = text.replace(/<\/ul>\s*<ul>/g, '');
+    text = text.replace(/<\/ol>\s*<ol>/g, '');
+
+    // 6. Inline Formatting
+    text = text.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+    text = text.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // 7. Line breaks
+    const parts = text.split(/(<div[\s\S]*?<\/div>|<table[\s\S]*?<\/table>|<h[1-6][\s\S]*?<\/h[1-6]>|<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>|<blockquote[\s\S]*?<\/blockquote>|<hr>)/gi);
+    return parts.map(part => {
+      if (/^<(div|table|h[1-6]|ul|ol|blockquote|hr)/i.test(part.trim())) return part;
+      return part.replace(/\n/g, '<br>');
+    }).join('');
   }
 
   function escapeHtml(str) {
